@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PocketSense</string>
+    <!-- Web client ID from Firebase Console (Authentication → Sign-in method → Google → Web client ID).
+         After enabling Google Sign-In, download a fresh google-services.json — it often adds default_web_client_id here automatically. -->
+    <string name="default_web_client_id" translatable="false">591476306432-7i07bj94i38qhik2n4sp737t7k0ssd5c.apps.googleusercontent.com</string>
 </resources>
+
