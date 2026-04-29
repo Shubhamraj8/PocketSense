@@ -18,6 +18,7 @@ import java.util.Locale
 @Composable
 fun WeeklyBarChart(
     amounts: List<Long>,
+    labelsOverride: List<String>? = null,
     modifier: Modifier = Modifier,
 ) {
     if (amounts.isEmpty()) return
@@ -28,10 +29,12 @@ fun WeeklyBarChart(
     val textMeasurer = rememberTextMeasurer()
 
     val today = LocalDate.now()
-    val labels = remember(amounts.size) {
-        val fmt = DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH)
-        (0 until amounts.size).map { i ->
-            today.minusDays((amounts.size - 1 - i).toLong()).format(fmt).uppercase()
+    val labels = remember(amounts.size, labelsOverride) {
+        labelsOverride ?: run {
+            val fmt = DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH)
+            (0 until amounts.size).map { i ->
+                today.minusDays((amounts.size - 1 - i).toLong()).format(fmt).uppercase()
+            }
         }
     }
     val maxAmount = amounts.max().coerceAtLeast(1L)

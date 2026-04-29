@@ -3,6 +3,7 @@ package app.pocketsense.service
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import app.pocketsense.data.Preferences
 
 data class ExitEvent(
     val packageName: String,
@@ -13,19 +14,21 @@ data class ExitEvent(
 class UsageWatcher(context: Context) {
 
     private val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    private val prefs = Preferences(context)
     private var cursorTimestamp: Long = System.currentTimeMillis()
     private val foregroundEnter = mutableMapOf<String, Long>()
     private val lastPromptedAt = mutableMapOf<String, Long>()
 
     fun pollNewExits(): List<ExitEvent> {
         val now = System.currentTimeMillis()
+        val watchedPackages = prefs.watchedPaymentApps()
         val events = usm.queryEvents(cursorTimestamp, now)
         val out = mutableListOf<ExitEvent>()
         val event = UsageEvents.Event()
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
             val pkg = event.packageName ?: continue
-            if (pkg !in PaymentApps.packages) continue
+            if (pkg !in watchedPackages) continue
             when (event.eventType) {
                 UsageEvents.Event.MOVE_TO_FOREGROUND -> {
                     foregroundEnter[pkg] = event.timeStamp

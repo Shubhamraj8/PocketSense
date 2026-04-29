@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
 
             var onboarded by remember { mutableStateOf(prefs.isOnboarded()) }
             var darkMode by remember { mutableStateOf(prefs.darkMode()) }
+            var watchedApps by remember { mutableStateOf(prefs.watchedPaymentApps()) }
 
             PocketSenseTheme(darkMode = darkMode) {
                 if (!onboarded) {
@@ -85,6 +86,11 @@ class MainActivity : ComponentActivity() {
                         onDarkModeChange = { newPref ->
                             prefs.setDarkMode(newPref)
                             darkMode = newPref
+                        },
+                        watchedApps = watchedApps,
+                        onWatchedAppsChange = { packages ->
+                            prefs.setWatchedPaymentApps(packages)
+                            watchedApps = prefs.watchedPaymentApps()
                         },
                     )
                 }
@@ -122,6 +128,8 @@ private fun AppRoot(
     onDeepLinkConsumed: () -> Unit,
     darkMode: DarkModePref,
     onDarkModeChange: (DarkModePref) -> Unit,
+    watchedApps: Set<String>,
+    onWatchedAppsChange: (Set<String>) -> Unit,
 ) {
     val navController = rememberNavController()
     val bottomTabs = remember { listOfNotNull(Dest.Home, Dest.Categories, Dest.Insights) }
@@ -218,6 +226,8 @@ private fun AppRoot(
                     repo = repo,
                     darkMode = darkMode,
                     onDarkModeChange = onDarkModeChange,
+                    watchedApps = watchedApps,
+                    onWatchedAppsChange = onWatchedAppsChange,
                     onBack = { navController.popBackStack() },
                 )
             }
