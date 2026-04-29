@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
@@ -46,7 +47,6 @@ import app.pocketsense.ui.categories.CategoriesScreen
 import app.pocketsense.ui.categories.CategoryDetailScreen
 import app.pocketsense.ui.home.HomeScreen
 import app.pocketsense.ui.insights.InsightsScreen
-import app.pocketsense.ui.onboarding.OnboardingScreen
 import app.pocketsense.ui.quickadd.QuickAddSheet
 import app.pocketsense.ui.settings.SettingsScreen
 import app.pocketsense.ui.theme.PocketSenseTheme
@@ -67,29 +67,33 @@ class MainActivity : ComponentActivity() {
             val prefs: Preferences = container.preferences
             val authRepo = container.authRepository
 
-            var onboarded by remember { mutableStateOf(prefs.isOnboarded()) }
             var darkMode by remember { mutableStateOf(prefs.darkMode()) }
             var watchedApps by remember { mutableStateOf(prefs.watchedPaymentApps()) }
             val firebaseUser by authRepo.observeAuthUser().collectAsState(initial = authRepo.currentUser())
 
-            PocketSenseTheme(darkMode = darkMode) {
+            val darkTheme = when (darkMode) {
+                DarkModePref.SYSTEM -> isSystemInDarkTheme()
+                DarkModePref.LIGHT -> false
+                DarkModePref.DARK -> true
+            }
+            PocketSenseTheme(darkTheme = darkTheme) {
                 if (firebaseUser == null) {
                     AuthScreen(authRepository = authRepo, darkMode = darkMode)
-                } else if (!onboarded) {
-                    OnboardingScreen(
-                        repo = container.repository,
-                        onDone = {
-                            prefs.setOnboarded(true)
-                            onboarded = true
-                        },
-                    )
                 } else {
+                    val userDisplayName = firebaseUser?.displayName
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() }
+                        ?: firebaseUser?.email
+                            ?.substringBefore("@")
+                            ?.takeIf { it.isNotBlank() }
+                        ?: "there"
                     AppRoot(
                         repo = container.repository,
                         triggerAppPackage = triggerAppPackage,
                         onTriggerConsumed = { triggerAppPackage = null },
                         deepLinkCategoryId = deepLinkCategoryId,
                         onDeepLinkConsumed = { deepLinkCategoryId = null },
+                        userDisplayName = userDisplayName,
                         darkMode = darkMode,
                         onDarkModeChange = { newPref ->
                             prefs.setDarkMode(newPref)
@@ -135,6 +139,7 @@ private fun AppRoot(
     onTriggerConsumed: () -> Unit,
     deepLinkCategoryId: Long?,
     onDeepLinkConsumed: () -> Unit,
+    userDisplayName: String,
     darkMode: DarkModePref,
     onDarkModeChange: (DarkModePref) -> Unit,
     watchedApps: Set<String>,
@@ -208,6 +213,7 @@ private fun AppRoot(
             composable(Dest.Home.route) {
                 HomeScreen(
                     repo = repo,
+                    userDisplayName = userDisplayName,
                     onCategoryClick = { id -> navController.navigate(Dest.CategoryDetail.build(id)) },
                 )
             }
