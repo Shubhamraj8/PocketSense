@@ -69,6 +69,7 @@ fun SettingsScreen(
     onDarkModeChange: (DarkModePref) -> Unit,
     watchedApps: Set<String>,
     onWatchedAppsChange: (Set<String>) -> Unit,
+    onSignOut: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -273,6 +274,15 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+
+            item {
+                Section("Account") {
+                    OutlinedButton(
+                        onClick = onSignOut,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Sign out") }
                 }
             }
         }

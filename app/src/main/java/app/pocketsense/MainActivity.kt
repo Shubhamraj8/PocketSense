@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +41,7 @@ import app.pocketsense.data.Preferences
 import app.pocketsense.service.AndroidBudgetAlertSink
 import app.pocketsense.service.ExpensePromptService
 import app.pocketsense.ui.Dest
+import app.pocketsense.ui.auth.AuthScreen
 import app.pocketsense.ui.categories.CategoriesScreen
 import app.pocketsense.ui.categories.CategoryDetailScreen
 import app.pocketsense.ui.home.HomeScreen
@@ -54,6 +57,7 @@ class MainActivity : ComponentActivity() {
     private var deepLinkCategoryId: Long? by mutableStateOf(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         consumeIntent(intent)
         setContent {
@@ -61,13 +65,17 @@ class MainActivity : ComponentActivity() {
             val app = context.applicationContext as PocketSenseApp
             val container = app.container
             val prefs: Preferences = container.preferences
+            val authRepo = container.authRepository
 
             var onboarded by remember { mutableStateOf(prefs.isOnboarded()) }
             var darkMode by remember { mutableStateOf(prefs.darkMode()) }
             var watchedApps by remember { mutableStateOf(prefs.watchedPaymentApps()) }
+            val firebaseUser by authRepo.observeAuthUser().collectAsState(initial = authRepo.currentUser())
 
             PocketSenseTheme(darkMode = darkMode) {
-                if (!onboarded) {
+                if (firebaseUser == null) {
+                    AuthScreen(authRepository = authRepo, darkMode = darkMode)
+                } else if (!onboarded) {
                     OnboardingScreen(
                         repo = container.repository,
                         onDone = {
@@ -92,6 +100,7 @@ class MainActivity : ComponentActivity() {
                             prefs.setWatchedPaymentApps(packages)
                             watchedApps = prefs.watchedPaymentApps()
                         },
+                        onSignOut = { authRepo.signOut() },
                     )
                 }
             }
@@ -130,6 +139,7 @@ private fun AppRoot(
     onDarkModeChange: (DarkModePref) -> Unit,
     watchedApps: Set<String>,
     onWatchedAppsChange: (Set<String>) -> Unit,
+    onSignOut: () -> Unit,
 ) {
     val navController = rememberNavController()
     val bottomTabs = remember { listOfNotNull(Dest.Home, Dest.Categories, Dest.Insights) }
@@ -228,6 +238,7 @@ private fun AppRoot(
                     onDarkModeChange = onDarkModeChange,
                     watchedApps = watchedApps,
                     onWatchedAppsChange = onWatchedAppsChange,
+                    onSignOut = onSignOut,
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -1,10 +1,12 @@
 package app.pocketsense.data
 
 import android.content.Context
+import app.pocketsense.data.auth.AuthRepository
 import app.pocketsense.service.AndroidBudgetAlertSink
 
 class AppContainer(context: Context) {
     val preferences: Preferences = Preferences(context)
+    val authRepository: AuthRepository = AuthRepository()
     private val db = PocketDb.get(context)
     private val alertSink = AndroidBudgetAlertSink(context)
     val repository: PocketRepository = PocketRepository(
