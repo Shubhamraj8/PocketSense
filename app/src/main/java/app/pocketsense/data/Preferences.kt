@@ -2,6 +2,7 @@ package app.pocketsense.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.pocketsense.service.PaymentApps
 
 enum class DarkModePref { SYSTEM, LIGHT, DARK }
 
@@ -23,9 +24,20 @@ class Preferences(context: Context) {
         prefs.edit().putString(KEY_DARK_MODE, pref.name).apply()
     }
 
+    fun watchedPaymentApps(): Set<String> {
+        val saved = prefs.getStringSet(KEY_WATCHED_PAYMENT_APPS, null)
+        return if (saved.isNullOrEmpty()) PaymentApps.defaultPackages else saved.toSet()
+    }
+
+    fun setWatchedPaymentApps(packages: Set<String>) {
+        val toSave = if (packages.isEmpty()) PaymentApps.defaultPackages else packages
+        prefs.edit().putStringSet(KEY_WATCHED_PAYMENT_APPS, toSave).apply()
+    }
+
     private companion object {
         const val NAME = "pocketsense_prefs"
         const val KEY_ONBOARDED = "onboarded"
         const val KEY_DARK_MODE = "dark_mode"
+        const val KEY_WATCHED_PAYMENT_APPS = "watched_payment_apps"
     }
 }

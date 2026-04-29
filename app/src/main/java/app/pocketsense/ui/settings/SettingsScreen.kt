@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,12 +61,14 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     repo: PocketRepository,
     darkMode: DarkModePref,
     onDarkModeChange: (DarkModePref) -> Unit,
+    watchedApps: Set<String>,
+    onWatchedAppsChange: (Set<String>) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -81,6 +85,7 @@ fun SettingsScreen(
     }
     val incomeParsed = parseRupeesToPaise(incomeText)
     val incomeChanged = incomeParsed != null && incomeParsed != (wallet?.monthlyIncomePaise ?: 0L)
+    var customPkgText by remember { mutableStateOf("") }
 
     Column(modifier.fillMaxSize()) {
         TopAppBar(
@@ -175,6 +180,62 @@ fun SettingsScreen(
                                 label = { Text(pref.displayName()) },
                             )
                         }
+                    }
+                }
+            }
+
+            item {
+                Section("Watched payment apps") {
+                    Text(
+                        "PocketSense will prompt only after these apps are used.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        PaymentApps.knownPackages.sortedBy { PaymentApps.label(it) }.forEach { pkg ->
+                            FilterChip(
+                                selected = pkg in watchedApps,
+                                onClick = {
+                                    val updated = watchedApps.toMutableSet()
+                                    if (pkg in updated) updated.remove(pkg) else updated.add(pkg)
+                                    onWatchedAppsChange(updated)
+                                },
+                                label = { Text(PaymentApps.label(pkg)) },
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = customPkgText,
+                        onValueChange = { customPkgText = it.trim() },
+                        label = { Text("Add custom app package") },
+                        placeholder = { Text("e.g. com.somebank.upi") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                val pkg = customPkgText
+                                if (pkg.isBlank()) return@OutlinedButton
+                                onWatchedAppsChange(watchedApps + pkg)
+                                customPkgText = ""
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Add app") }
+                        OutlinedButton(
+                            onClick = { onWatchedAppsChange(PaymentApps.defaultPackages) },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Reset defaults") }
+                    }
+                    if (watchedApps.isNotEmpty()) {
+                        Text(
+                            "Currently watching: ${watchedApps.sorted().joinToString()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
