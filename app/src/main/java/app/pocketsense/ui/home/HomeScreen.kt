@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +82,7 @@ import app.pocketsense.ui.theme.PocketSenseTheme
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -88,12 +90,15 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     repo: PocketRepository,
+    userDisplayName: String,
     onCategoryClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val prefs = remember(context) { app.pocketsense.data.Preferences(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    val displayName = userDisplayName.trim().ifBlank { "there" }
     val wallet by repo.observeWallet().collectAsState(initial = null)
     val today = LocalDate.now()
     val cycle = remember(today, wallet?.cycleStartDay) {
@@ -137,7 +142,7 @@ fun HomeScreen(
 
     var hasUsageAccess by remember { mutableStateOf(checkUsageAccess(context)) }
     var hasNotifPerm by remember { mutableStateOf(checkNotificationPerm(context)) }
-    var serviceRunning by remember { mutableStateOf(false) }
+    var serviceRunning by remember { mutableStateOf(prefs.isWatcherEnabled()) }
     var addMoneyOpen by remember { mutableStateOf(false) }
     var editingTxn by remember { mutableStateOf<Txn?>(null) }
 
@@ -146,10 +151,17 @@ fun HomeScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasUsageAccess = checkUsageAccess(context)
                 hasNotifPerm = checkNotificationPerm(context)
+                serviceRunning = prefs.isWatcherEnabled()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(hasUsageAccess, hasNotifPerm, serviceRunning) {
+        if (serviceRunning && hasUsageAccess && hasNotifPerm) {
+            ExpensePromptService.start(context)
+        }
     }
 
     val notifPermLauncher = rememberLauncherForActivityResult(
@@ -161,6 +173,13 @@ fun HomeScreen(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        item {
+            Text(
+                text = "${greetingForNow()}, $displayName",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         item {
             WalletCard(
                 balancePaise = balance,
@@ -218,9 +237,15 @@ fun HomeScreen(
                     }
                 },
                 onToggleService = {
-                    if (serviceRunning) ExpensePromptService.stop(context)
-                    else ExpensePromptService.start(context)
-                    serviceRunning = !serviceRunning
+                    if (serviceRunning) {
+                        ExpensePromptService.stop(context)
+                        prefs.setWatcherEnabled(false)
+                        serviceRunning = false
+                    } else {
+                        ExpensePromptService.start(context)
+                        prefs.setWatcherEnabled(true)
+                        serviceRunning = true
+                    }
                 },
             )
         }
@@ -245,6 +270,12 @@ fun HomeScreen(
             onDismiss = { editingTxn = null },
         )
     }
+}
+
+private fun greetingForNow(now: LocalTime = LocalTime.now()): String = when (now.hour) {
+    in 5..11 -> "Good morning"
+    in 12..16 -> "Good afternoon"
+    else -> "Good evening"
 }
 
 private data class AlertItem(
@@ -381,6 +412,11 @@ private fun WalletCard(
                 "Safe to spend today: ${formatRupees(safeToSpendPaise)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
+            )
+            Text(
+                "(Remaining amount ÷ days left in cycle)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (!hasBudgets) {
                 Text(

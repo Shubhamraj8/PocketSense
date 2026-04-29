@@ -34,10 +34,17 @@ class Preferences(context: Context) {
         prefs.edit().putStringSet(KEY_WATCHED_PAYMENT_APPS, toSave).apply()
     }
 
+    fun isWatcherEnabled(): Boolean = prefs.getBoolean(KEY_WATCHER_ENABLED, false)
+
+    fun setWatcherEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_WATCHER_ENABLED, enabled).apply()
+    }
+
     private companion object {
         const val NAME = "pocketsense_prefs"
         const val KEY_ONBOARDED = "onboarded"
         const val KEY_DARK_MODE = "dark_mode"
         const val KEY_WATCHED_PAYMENT_APPS = "watched_payment_apps"
+        const val KEY_WATCHER_ENABLED = "watcher_enabled"
     }
 }
