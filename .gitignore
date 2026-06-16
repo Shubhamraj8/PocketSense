@@ -10,3 +10,6 @@ captures/
 *.jks
 *.keystore
 .kotlin/
+
+# Firebase config (contains project API keys) — keep local only
+app/google-services.json
