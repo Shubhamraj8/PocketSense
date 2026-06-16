@@ -46,6 +46,7 @@ import app.pocketsense.ui.auth.AuthScreen
 import app.pocketsense.ui.categories.CategoriesScreen
 import app.pocketsense.ui.categories.CategoryDetailScreen
 import app.pocketsense.ui.home.HomeScreen
+import app.pocketsense.ui.insights.CycleDetailScreen
 import app.pocketsense.ui.insights.InsightsScreen
 import app.pocketsense.ui.quickadd.QuickAddSheet
 import app.pocketsense.ui.settings.SettingsScreen
@@ -224,7 +225,16 @@ private fun AppRoot(
                 )
             }
             composable(Dest.Insights.route) {
-                InsightsScreen(repo = repo)
+                InsightsScreen(
+                    repo = repo,
+                    onSeeCycleDetails = { navController.navigate(Dest.CycleDetail.route) },
+                )
+            }
+            composable(Dest.CycleDetail.route) {
+                CycleDetailScreen(
+                    repo = repo,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(
                 route = Dest.CategoryDetail.route,

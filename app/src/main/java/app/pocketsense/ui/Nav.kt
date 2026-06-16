@@ -14,6 +14,7 @@ sealed class Dest(val route: String, val label: String, val icon: ImageVector?) 
         const val ARG = "categoryId"
         fun build(id: Long) = "category/$id"
     }
+    object CycleDetail : Dest("cycle_details", "Cycle details", null)
     object Settings : Dest("settings", "Settings", null)
 
     companion object {

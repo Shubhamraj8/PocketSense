@@ -23,6 +23,11 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE archivedAt IS NULL ORDER BY sortOrder")
     fun observeActive(): Flow<List<Category>>
 
+    // Includes archived categories so historical breakdowns can still name a
+    // category that was archived after money was spent against it.
+    @Query("SELECT * FROM categories ORDER BY sortOrder")
+    fun observeAll(): Flow<List<Category>>
+
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getById(id: Long): Category?
 
@@ -102,6 +107,15 @@ interface TxnDao {
         ORDER BY occurredAt
     """)
     fun observeExpensesSince(since: Instant): Flow<List<Txn>>
+
+    @Query("""
+        SELECT * FROM transactions
+        WHERE amountPaise < 0
+          AND occurredAt >= :start
+          AND occurredAt < :end
+        ORDER BY occurredAt
+    """)
+    fun observeExpensesInWindow(start: Instant, end: Instant): Flow<List<Txn>>
 
     @Insert
     suspend fun insert(txn: Txn): Long

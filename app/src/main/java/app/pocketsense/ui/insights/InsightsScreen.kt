@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,12 +61,15 @@ private enum class InsightsRange { WEEK, MONTH }
 @Composable
 fun InsightsScreen(
     repo: PocketRepository,
+    onSeeCycleDetails: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val today = LocalDate.now()
     val zone = ZoneId.systemDefault()
-    val cycle = remember(today) { currentCycle(today) }
-    val prev = remember(today) { previousCycle(today) }
+    val wallet by repo.observeWallet().collectAsState(initial = null)
+    val cycleStartDay = wallet?.cycleStartDay ?: 1
+    val cycle = remember(today, cycleStartDay) { currentCycle(today, cycleStartDay) }
+    val prev = remember(today, cycleStartDay) { previousCycle(today, cycleStartDay) }
 
     val sevenDayWindow = remember(today) {
         today.minusDays(6).atStartOfDay(zone).toInstant()
@@ -153,7 +157,13 @@ fun InsightsScreen(
                 }
             }
         }
-        item { MomCard(thisCycle = thisCycleTotal, lastCycle = prevCycleTotal) }
+        item {
+            MomCard(
+                thisCycle = thisCycleTotal,
+                lastCycle = prevCycleTotal,
+                onSeeDetails = onSeeCycleDetails,
+            )
+        }
         item {
             Text("This cycle by category", style = MaterialTheme.typography.titleMedium)
         }
@@ -209,13 +219,13 @@ private fun MonthSliderHeader(
             style = MaterialTheme.typography.titleMedium,
         )
         IconButton(onClick = onNext, enabled = canGoNext) {
-            Icon(Icons.Filled.KeyboardArrowRight, contentDescription = "Next month")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month")
         }
     }
 }
 
 @Composable
-private fun MomCard(thisCycle: Long, lastCycle: Long) {
+private fun MomCard(thisCycle: Long, lastCycle: Long, onSeeDetails: () -> Unit) {
     val diff = thisCycle - lastCycle
     val pctChange = if (lastCycle > 0) abs(diff).toFloat() / lastCycle * 100 else 0f
     Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
@@ -240,6 +250,17 @@ private fun MomCard(thisCycle: Long, lastCycle: Long) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (diff > 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            TextButton(
+                onClick = onSeeDetails,
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+            ) {
+                Text("See previous cycle breakdown")
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }

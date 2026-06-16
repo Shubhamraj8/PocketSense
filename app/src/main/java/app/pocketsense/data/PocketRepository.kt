@@ -22,6 +22,9 @@ class PocketRepository(
     fun observeSpentInWindow(categoryId: Long, start: Instant, end: Instant) =
         txnDao.observeSpentByCategoryInWindow(categoryId, start, end)
     fun observeExpensesSince(since: Instant) = txnDao.observeExpensesSince(since)
+    fun observeExpensesInWindow(start: Instant, end: Instant) =
+        txnDao.observeExpensesInWindow(start, end)
+    fun observeAllCategories() = categoryDao.observeAll()
     fun observeAllocationsForCycle(cycleStart: LocalDate) =
         allocationDao.observeByCycle(cycleStart)
 

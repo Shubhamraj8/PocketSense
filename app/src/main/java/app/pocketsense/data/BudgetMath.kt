@@ -27,6 +27,17 @@ fun previousCycle(today: LocalDate = LocalDate.now(), cycleStartDay: Int = 1): C
     return Cycle(cur.start.minusMonths(1), cur.start)
 }
 
+/**
+ * The cycle [offset] cycles back from the current one. offset 0 = current cycle,
+ * 1 = previous cycle, 2 = the one before that, and so on. Negative offsets are
+ * clamped to the current cycle.
+ */
+fun cycleForOffset(offset: Int, today: LocalDate = LocalDate.now(), cycleStartDay: Int = 1): Cycle {
+    val back = offset.toLong().coerceAtLeast(0L)
+    val cur = currentCycle(today, cycleStartDay)
+    return Cycle(cur.start.minusMonths(back), cur.endExclusive.minusMonths(back))
+}
+
 fun safeToSpendTodayPaise(remainingPaise: Long, daysRemaining: Int): Long {
     val nonNeg = remainingPaise.coerceAtLeast(0)
     if (daysRemaining <= 0) return nonNeg
